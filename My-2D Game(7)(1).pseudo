@@ -1,0 +1,491 @@
+CONSTANT Width = 1300
+CONSTANT Height = 800
+CONSTANT Window = "Window"
+CONSTANT MovingChance = 90 //This is chance of not moving
+CONSTANT HearingChance = 40 //This is the chance of hearing the sound
+
+DECLARE Constrast : STRING
+        Constrast ← "#000547"
+DECLARE Color : STRING
+        Color ← "#00021A"
+DECLARE SceneNumber : INTEGER
+        SceneNumber ← 0
+
+CONSTANT CameraSwitchFrequency = 2000
+CONSTANT CameraSwitchID = "CameraSwitch"
+CONSTANT CameraSwitchVol = 0.1
+CONSTANT CameraSwitchType = "sine"
+CONSTANT CameraSwitchWaitTime = 50
+
+DECLARE CurrentViewingCamera : INTEGER
+DECLARE BrokenCameras : ARRAY[1:11] OF BOOLEAN
+DECLARE ValuesCameras : ARRAY[1:11] OF INTEGER
+
+        ValuesCameras[1]  ← 1
+        ValuesCameras[2]  ← 2
+        ValuesCameras[3]  ← 2
+        ValuesCameras[4]  ← 3
+        ValuesCameras[5]  ← 3
+        ValuesCameras[6]  ← 2
+        ValuesCameras[7]  ← 4
+        ValuesCameras[8]  ← 4
+        ValuesCameras[9]  ← 3
+        ValuesCameras[10] ← 2
+        ValuesCameras[11] ← 5
+
+DECLARE CurrentEpsteinLocation : INTEGER
+        CurrentEpsteinLocation ← 11
+DECLARE CurrentCamera : INTEGER
+DECLARE Playable : BOOLEAN
+        Playable ← TRUE
+DECLARE Clock : INTEGER
+        Clock ← TIME(0)
+OUTPUT  Clock
+DECLARE HoursPassed : INTEGER
+        HoursPassed ← 0
+DECLARE GameRunning : BOOLEAN
+        GameRunning ← TRUE
+
+DECLARE ResetingCameras : BOOLEAN
+DECLARE ResetingSoundSystem : BOOLEAN
+DECLARE SoundSystemBroken : BOOLEAN
+        SoundSystemBroken ← FALSE
+
+TYPE Enemy
+
+    DECLARE CurrentCameraValue : INTEGER
+    DECLARE CameraDeficitValue1st : INTEGER
+    DECLARE CameraDeficitValue2nd : INTEGER
+    DECLARE STATE_TrvToHeard : BOOLEAN
+    DECLARE HostiltyLevel : INTEGER
+    DECLARE Image : STRING
+
+ENDTYPE
+
+DECLARE En_Jeffy : Enemy
+
+
+PROCEDURE SetCanvasColor()
+
+    FOR Count ← 1 TO Height 
+        IF (Count MOD 2) = 0 THEN
+            DRAWLINE(Window,0,Count,Width,Count,Color,1)
+        ELSE
+            DRAWLINE(Window,0,Count,Width,Count,Constrast,1)
+        ENDIF
+    NEXT Count
+
+ENDPROCEDURE
+
+CALL CREATECANVAS(Window,Width,Height)
+CALL SetCanvasColor()
+CALL DRAWIMAGE(Window,"Menu.jpg",0,0,Width,Height)
+
+//Element specific vars
+DECLARE PlaypressCount : INTEGER
+DECLARE OnMainMenu : BOOLEAN
+        OnMainMenu ← TRUE
+
+
+PROCEDURE LoadGame_Scene1()
+    CALL CLEARCANVAS(Window,0,0,Width,Height)
+    CALL DRAWIMAGE(Window,"Newspaper.jpg",0,0,Width,Height)
+    CALL DRAWTEXT(Window, "Press Enter To Continue","center",Width-100,Height-60,10,"Arial","White","Black",1)
+ENDPROCEDURE
+
+PROCEDURE LoadGame_Scene2()
+    DECLARE FullStringForTime : STRING
+            FullStringForTime ← HoursPassed & " am"
+
+    CALL CLEARCANVAS(Window,0,0,Width,Height)
+    CALL DRAWIMAGE(Window,"Bathroom2.jpg",0,0,Width,Height)    
+    CALL DRAWTEXT(Window, FullStringForTime,"center",100,100,24,"Arial","White","Black",1)
+ENDPROCEDURE
+
+PROCEDURE LoadGame_SceneCameras(Camera : STRING, CameraNumber : INTEGER, Enemy_ : Enemy)
+    IF CurrentEpsteinLocation > 0 THEN
+        CALL CLEARCANVAS(Window,0,0,Width,Height)
+
+        IF CurrentEpsteinLocation = CameraNumber THEN
+            DECLARE Temp_vra : STRING
+            IF CameraNumber = 1 THEN
+                    Temp_vra ← "Cam" & NUM_TO_STR(CameraNumber) & "EP.jpg"
+            ELSE
+                Temp_vra ← "Cam" & NUM_TO_STR(CameraNumber) & "EP.png"
+            ENDIF
+            CALL DRAWIMAGE(Window,Temp_vra,0,0,Width,Height)
+            CALL DRAWIMAGE(Window,"Overlay.png",0,0,Width,Height)
+        ELSE
+            IF BrokenCameras[CameraNumber] = FALSE THEN
+                CALL DRAWIMAGE(Window,Camera,0,0,Width,Height)
+                CALL DRAWIMAGE(Window,"Overlay.png",0,0,Width,Height)
+            ELSE
+                CALL DRAWIMAGE(Window,"ScreenError.png",0,0,Width,Height)
+            ENDIF
+        ENDIF
+
+        //IF CurrentEpsteinLocation = CameraNumber THEN
+        //   CALL DRAWIMAGE(Window, Enemy_.Image, 600, 500, 209, 327)
+        //ENDIF
+    ENDIF
+ENDPROCEDURE
+
+
+
+PROCEDURE SelectElement(Key:STRING)
+    IF Key = "Enter" AND SceneNumber = 0 THEN
+        IF OnMainMenu THEN
+            PlaypressCount ← PlaypressCount + 1 
+        ENDIF
+        IF PlaypressCount = 2 THEN
+            SceneNumber ← SceneNumber + 1
+            CALL LoadGame_Scene1()
+        ENDIF
+    ELSE IF Key = "Enter" AND SceneNumber = 1 THEN
+            CALL LoadGame_Scene2()
+        ENDIF
+    ENDIF
+ENDPROCEDURE
+
+
+PROCEDURE CurrentCameraIF(active:STRING)
+
+    CASE OF active
+        "1":CurrentViewingCamera ← 1
+        "2":CurrentViewingCamera ← 2
+        "3":CurrentViewingCamera ← 3
+        "4":CurrentViewingCamera ← 4
+        "5":CurrentViewingCamera ← 5
+        "6":CurrentViewingCamera ← 6
+        "7":CurrentViewingCamera ← 7
+        "8":CurrentViewingCamera ← 8
+        "9":CurrentViewingCamera ← 9
+        "0":CurrentViewingCamera ← 10
+        "-":CurrentViewingCamera ← 11
+    ENDCASE
+
+ENDPROCEDURE
+
+
+
+
+
+PROCEDURE Init_Jeffy()
+            En_Jeffy.CurrentCameraValue ← 5
+            En_Jeffy.CameraDeficitValue1st ← 1
+            En_Jeffy.CameraDeficitValue2nd ← 2
+            En_Jeffy.STATE_TrvToHeard ← FALSE
+            En_Jeffy.HostiltyLevel ← 5
+            En_Jeffy.Image ← "JeffyNew.png"
+
+ENDPROCEDURE
+
+PROCEDURE JumpscareSound()
+    // soft ambient tone
+    CALL PLAYSOUND("A1","sine",120,0.04)
+    CALL WAIT(500)
+    CALL PLAYSOUND("A2","sine",118,0.04)
+    CALL WAIT(500)
+    CALL PLAYSOUND("A3","sine",122,0.04)
+
+    CALL WAIT(3000)
+
+    // gentle mid texture
+    CALL PLAYSOUND("B1","triangle",300,0.02)
+    CALL WAIT(700)
+    CALL PLAYSOUND("B2","triangle",280,0.02)
+
+    CALL WAIT(3000)
+
+    // light airy tone (no harsh highs)
+    CALL PLAYSOUND("F1","triangle",500,0.015)
+    CALL WAIT(800)
+    CALL PLAYSOUND("F2","triangle",520,0.015)
+
+    CALL WAIT(4000)
+
+    // begin soft fade out
+
+    CALL STOPSOUND("F1")
+    CALL STOPSOUND("F2")
+
+    CALL WAIT(1500)
+
+    CALL STOPSOUND("B1")
+    CALL STOPSOUND("B2")
+
+    CALL WAIT(1500)
+
+    CALL STOPSOUND("A1")
+    CALL STOPSOUND("A2")
+    CALL STOPSOUND("A3")
+ENDPROCEDURE
+
+PROCEDURE JumpscareSound2()
+
+
+    // intro single tone
+    CALL PLAYSOUND("M1","sine",440,0.05)
+    CALL WAIT(800)
+
+    CALL PLAYSOUND("M2","sine",494,0.05)
+    CALL WAIT(800)
+
+    CALL PLAYSOUND("M3","sine",523,0.05)
+    CALL WAIT(1200)
+
+    STOPSOUND("M1")
+    STOPSOUND("M2")
+    STOPSOUND("M3")
+
+    CALL WAIT(500)
+
+    // variation (slightly higher feel)
+    CALL PLAYSOUND("M7","sine",523,0.05)
+    CALL WAIT(700)
+
+    CALL PLAYSOUND("M8","sine",587,0.05)
+    CALL WAIT(700)
+
+    CALL PLAYSOUND("M9","sine",659,0.05)
+    CALL WAIT(1200)
+
+    STOPSOUND("M7")
+    STOPSOUND("M8")
+    STOPSOUND("M9")
+
+
+ENDPROCEDURE
+
+PROCEDURE Jumpscare(Enemy_Current1 : Enemy)
+    GameRunning ← FALSE
+    CALL JumpscareSound2()
+    OUTPUT "Ya ded :(("
+    CALL WAIT(1000)
+    CALL DRAWIMAGE(Window,"Eppy_JUMP.jpg",0,0,Width,Height)
+    CALL WAIT(20)    
+    CALL CLEARCANVAS(Window,0,0,Width,Height)
+    CALL DRAWIMAGE(Window,"Eppy_JUMP.jpg",0,0,Width,Height)
+    CALL WAIT(20)
+    CALL CLEARCANVAS(Window,0,0,Width,Height)
+    CALL DRAWIMAGE(Window,"Eppy_JUMP.jpg",0,0,Width,Height)
+    CALL WAIT(200)
+    CALL CLEARCANVAS(Window,0,0,Width,Height)
+    FOR count ← 1 TO Height 
+        CALL DRAWLINE(Window,0,count,Width,count,"Black",1)
+    NEXT count
+    CALL DRAWTEXT(Window,"You Lost! :(","Center",Width/2,Height/2,35,"Roboto","White","White",1)
+ENDPROCEDURE
+
+FUNCTION MOV_EnemyDown(Enemy_Current : Enemy) RETURNS Enemy
+    DECLARE OldCamera : INTEGER
+            OldCamera ← Enemy_Current.CurrentCameraValue
+    DECLARE UsedDeficit : INTEGER
+
+    IF RANDOM()*100 > 60 THEN
+        UsedDeficit ← Enemy_Current.CameraDeficitValue2nd
+    ELSE
+        UsedDeficit ← Enemy_Current.CameraDeficitValue1st
+    ENDIF
+	
+	BrokenCameras[CurrentEpsteinLocation] ← TRUE
+    Enemy_Current.CurrentCameraValue ← Enemy_Current.CurrentCameraValue - UsedDeficit
+
+    IF Enemy_Current.CurrentCameraValue <= 0 THEN
+        CALL Jumpscare(Enemy_Current)
+    ENDIF
+
+    DECLARE Matches : ARRAY[1:11] OF INTEGER
+    DECLARE MatchCount : INTEGER 
+            MatchCount ← 0
+
+    FOR Count ← 1 TO 11
+        IF ValuesCameras[Count] = Enemy_Current.CurrentCameraValue THEN
+            MatchCount ← MatchCount + 1
+            Matches[MatchCount] ← Count
+        ENDIF
+    NEXT Count
+
+    CurrentEpsteinLocation ← Matches[INT(RANDOM()*MatchCount) + 1]
+    RETURN Enemy_Current
+ENDFUNCTION
+
+FUNCTION MOV_EnemyUp(Enemy_Current : Enemy) RETURNS Enemy
+    DECLARE UsedDeficit : INTEGER
+
+
+    IF RANDOM()*100 > 60 THEN
+        UsedDeficit ← Enemy_Current.CameraDeficitValue2nd
+    ELSE
+        UsedDeficit ← Enemy_Current.CameraDeficitValue1st
+    ENDIF
+
+
+    Enemy_Current.CurrentCameraValue ← Enemy_Current.CurrentCameraValue + UsedDeficit
+
+    IF Enemy_Current.CurrentCameraValue > 5 THEN
+			Enemy_Current.CurrentCameraValue ← 5
+    ENDIF
+
+	BrokenCameras[CurrentEpsteinLocation] ← TRUE
+
+    DECLARE Matches : ARRAY[1:11] OF INTEGER
+    DECLARE MatchCount : INTEGER 
+            MatchCount ← 0
+
+    FOR Count ← 1 TO 11
+        IF ValuesCameras[Count] = Enemy_Current.CurrentCameraValue THEN
+            MatchCount ← MatchCount + 1
+            Matches[MatchCount] ← Count
+        ENDIF
+    NEXT Count
+
+    CurrentEpsteinLocation ← Matches[INT(RANDOM()*MatchCount) + 1]
+    RETURN Enemy_Current
+
+ENDFUNCTION
+
+PROCEDURE WonNight()
+    OUTPUT "U won!"
+    CALL JumpscareSound2()
+ENDPROCEDURE
+
+PROCEDURE TimeR()
+    DECLARE TempTime : INTEGER
+            TempTime ← Clock + 85000
+    IF TIME(0) >= TempTime THEN
+        Clock ← TempTime
+        IF HoursPassed >= 6 THEN
+                OUTPUT "Hours:", HoursPassed
+                CALL WonNight()
+            ELSE
+                HoursPassed ← HoursPassed + 1
+                OUTPUT "Hours:", HoursPassed
+        ENDIF
+    ENDIF
+ENDPROCEDURE
+
+PROCEDURE BreakSoundSystem()
+    IF INT(RANDOM()*100) > 70 THEN
+        SoundSystemBroken ← TRUE
+    ENDIF
+ENDPROCEDURE
+
+PROCEDURE ResetSoundSystem()
+        SoundSystemBroken ← FALSE
+ENDPROCEDURE
+
+
+PROCEDURE ResetCameras()
+    FOR Count ← 1 TO 11
+        BrokenCameras[Count] ← FALSE
+    NEXT Count
+ENDPROCEDURE
+
+
+CALL Init_Jeffy()
+//CALL JumpscareSound()
+//WAIT(4000)
+//CALL JumpscareSound2()
+
+EVENT KEYPRESS
+    DECLARE KeyPressed : STRING
+    DECLARE Camera_Active : STRING
+    IF event.code = "Enter" THEN
+        OUTPUT "Enter Pressed"
+        KeyPressed ← "Enter"
+        CALL PLAYSOUND("EnterSound","square",400,0.01)
+        CALL SelectElement(KeyPressed)
+        CALL WAIT(500)
+        CALL STOPSOUND("EnterSound")
+        CALL TimeR()
+    ENDIF
+        
+    IF event.code = "KeyC" THEN
+        OUTPUT "C Pressed"
+        KeyPressed ← "KeyC"
+        CALL LoadGame_Scene2()
+        CALL TimeR()
+    ENDIF
+
+    IF event.key = "1" OR event.key = "2" OR event.key = "3" OR event.key = "4" OR event.key = "5" OR event.key = "6" OR event.key = "7" OR event.key = "8" OR event.key = "9" THEN
+
+        Camera_Active ← "Cam" & event.key & ".png"
+        IF RANDOM()*100 > MovingChance THEN
+            En_Jeffy ← MOV_EnemyDown(En_Jeffy)
+        ENDIF
+        CALL PLAYSOUND(CameraSwitchID,CameraSwitchType,CameraSwitchFrequency,CameraSwitchVol)
+        CALL CurrentCameraIF(event.key)
+        CALL LoadGame_SceneCameras(Camera_Active, STR_TO_NUM(event.key), En_Jeffy)
+        CALL WAIT(CameraSwitchWaitTime)
+        CALL STOPSOUND(CameraSwitchID)
+        CALL TimeR()
+    ENDIF
+
+    IF event.key = "0" THEN
+        Camera_Active ← "Cam10.png"
+        IF RANDOM()*100 > MovingChance THEN
+            En_Jeffy ← MOV_EnemyDown(En_Jeffy)
+        ENDIF
+        CALL PLAYSOUND(CameraSwitchID,CameraSwitchType,CameraSwitchFrequency,CameraSwitchVol)
+        CALL CurrentCameraIF(event.key)
+        CALL LoadGame_SceneCameras(Camera_Active, 10, En_Jeffy)
+        CALL WAIT(CameraSwitchWaitTime)
+        CALL STOPSOUND(CameraSwitchID)
+        CALL TimeR()
+        
+    ENDIF
+    IF event.key = "-" THEN
+        Camera_Active ← "Cam11.png"
+        IF RANDOM()*100 > MovingChance THEN
+            En_Jeffy ← MOV_EnemyDown(En_Jeffy)
+        ENDIF
+        CALL PLAYSOUND(CameraSwitchID,CameraSwitchType,CameraSwitchFrequency,CameraSwitchVol)
+        CALL CurrentCameraIF(event.key)
+        CALL LoadGame_SceneCameras(Camera_Active, 11, En_Jeffy)
+        CALL WAIT(CameraSwitchWaitTime)
+        CALL STOPSOUND(CameraSwitchID)
+        CALL TimeR()
+        
+    ENDIF
+    IF event.key = "s" AND Playable THEN
+        IF SoundSystemBroken = FALSE THEN    
+            Playable ← FALSE
+            IF En_Jeffy.CurrentCameraValue < CurrentViewingCamera THEN
+                IF HearingChance > INT(RANDOM()) THEN
+                    En_Jeffy ← MOV_EnemyUp(En_Jeffy)
+                ENDIF
+            ELSE
+                En_Jeffy ← MOV_EnemyDown(En_Jeffy)
+            ENDIF
+
+            CALL PLAYSOUND("wave3", "sine", 523, 0.05)
+            CALL WAIT(1000)
+            CALL STOPSOUND("wave3")
+
+            CALL PLAYSOUND("wave4", "sine", 659, 0.05)
+            CALL WAIT(1000)
+            CALL STOPSOUND("wave4")
+            CALL WAIT(5000)
+            Playable ← TRUE
+            CALL BreakSoundSystem()
+        ENDIF
+    ENDIF
+    IF event.key = "r" THEN 
+        IF ResetingCameras <> TRUE THEN
+            ResetingCameras ← TRUE
+            CALL ResetCameras()
+            CALL LoadGame_SceneCameras("Cam" & NUM_TO_STR(CurrentViewingCamera) & ".png", CurrentViewingCamera, En_Jeffy)
+            ResetingCameras ← FALSE
+        ENDIF
+    ENDIF
+    
+    IF event.key = "e" THEN 
+        IF ResetingSoundSystem <> TRUE THEN
+            ResetingSoundSystem ← TRUE
+            CALL ResetSoundSystem()
+            CALL LoadGame_SceneCameras("Cam" & NUM_TO_STR(CurrentViewingCamera) & ".png", CurrentViewingCamera, En_Jeffy)
+            ResetingSoundSystem ← FALSE
+        ENDIF
+    ENDIF
+ENDEVENT
