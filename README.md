@@ -1,6 +1,6 @@
 # **Description:**
     .This is a game made only for pseudocode with no engine
-    .This game **ONLY** runs on pseudocode.pro and does not work with any specific syllabus
+    .This game *ONLY* runs on pseudocode.pro and does not work with any specific syllabus
     .The game only works in "All extra modules" as that provides the window where the game is being rendered on
     .The game is designed to be a challenge to code as a game running without a game engine is hard to produce
 
