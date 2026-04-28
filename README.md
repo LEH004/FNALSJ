@@ -1,4 +1,4 @@
-**Controls:**
+# **Controls:**
     Enter: for 'Continue' in menus such as main menu  \n
     E: Reset SoundSystem \n
     R: Reset CameraSystem \n
